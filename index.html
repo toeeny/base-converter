@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多功能線上工具 (進位轉換 & 二維碼生成)</title>
+    <!-- 引入 QRCode.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1F4E78;
+            --primary-hover: #173b5c;
+            --bg-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --border-color: #D9D9D9;
+            --text-color: #333333;
+            --highlight-bg: #FFF2CC;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        /* 頁籤 Tab 樣式 */
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 25px;
+            gap: 5px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 通用元件樣式 */
+        h1 {
+            color: var(--primary-color);
+            margin-top: 0;
+            font-size: 24px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            background: #EBF3FA;
+            padding: 10px 15px;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="number"], input[type="text"], textarea {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 90px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .converter-box {
+            background: #F1F5F9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .result-badge {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            background: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #CBD5E1;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        th, td {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #F8FAFC;
+        }
+
+        tr.highlight {
+            background-color: var(--highlight-bg);
+            font-weight: bold;
+        }
+
+        .charset-display {
+            font-family: monospace;
+            background: #E2E8F0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+        }
+
+        /* 二維碼頁籤專用樣式 */
+        .qr-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .qr-input-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .qr-output-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #F8FAFC;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 250px;
+            min-height: 250px;
+        }
+
+        #qrcode canvas, #qrcode img {
+            margin: 10px auto;
+            border: 4px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 分頁導覽按鈕 -->
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('tab-converter')">進位對照表工具</button>
+        <button class="tab-btn" onclick="switchTab('tab-qrcode')">二維碼 (QR Code) 生成器</button>
+    </div>
+
+    <!-- 分頁 1：進位對照表 -->
+    <div id="tab-converter" class="tab-content active">
+        <h1>進位對照表線上轉換工具</h1>
+        <div class="subtitle">
+            • <strong>標準 36 進制字元庫：</strong> <span class="charset-display">0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</span>（共 36 字元，包含 I 與 O）。<br>
+            • <strong>自訂進位字元庫：</strong> <span class="charset-display">0123456789ABCDEFGHJKLMNPQRSTUVWXYZ</span>（共 34 字元，已剔除 <span style="color:red; font-weight:bold;">I</span> 與 <span style="color:red; font-weight:bold;">O</span>，採用 34 進制不重碼）。
+        </div>
+
+        <div class="converter-box">
+            <div class="control-group">
+                <label for="singleInput">單數快速查詢 (十進位):</label>
+                <input type="number" id="singleInput" value="106" min="0" oninput="convertSingle()">
+            </div>
+            <div>十六進位: <span id="hexResult" class="result-badge">6A</span></div>
+            <div>標準 36 進制: <span id="base36Result" class="result-badge">2Y</span></div>
+            <div>自訂進位 (無 I,O): <span id="customResult" class="result-badge">34</span></div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="startNum">起始值:</label>
+                <input type="number" id="startNum" value="0" min="0">
+            </div>
+            <div class="control-group">
+                <label for="endNum">結束值:</label>
+                <input type="number" id="endNum" value="120" min="0">
+            </div>
+            <button onclick="generateTable()">產生對照表</button>
+            <button onclick="exportCSV()" style="background-color: #2E7D32;">匯出 CSV 檔</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>十進位 (Decimal)</th>
+                        <th>十六進位 (Hex)</th>
+                        <th>標準 36 進制 (含 I,O)</th>
+                        <th>自訂進位 (無 I,O 不重碼)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分頁 2：二維碼生成器 -->
+    <div id="tab-qrcode" class="tab-content">
+        <h1>二維碼 (QR Code) 生成器</h1>
+        <div class="subtitle">
+            輸入任意文字、網址、料號或進位編碼，即可即時產生 QR Code 圖片，並支援一鍵下載。
+        </div>
+
+        <div class="qr-wrapper">
+            <div class="qr-input-section">
+                <div style="margin-bottom: 15px;">
+                    <label for="qrText" style="display:block; margin-bottom: 8px;">輸入文字 / 網址 / 編碼：</label>
+                    <textarea id="qrText" placeholder="請在此輸入要轉換為 QR Code 的內容..." oninput="makeQRCode()">https://github.com</textarea>
+                </div>
+
+                <div class="controls" style="margin-bottom: 15px;">
+                    <div class="control-group">
+                        <label for="qrSize">圖片尺寸:</label>
+                        <select id="qrSize" onchange="makeQRCode()" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color);">
+                            <option value="150">小 (150x150)</option>
+                            <option value="200" selected>中 (200x200)</option>
+                            <option value="300">大 (300x300)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="downloadQRCode()" style="background-color: #2E7D32; width: 100%;">下載 QR Code 圖片 (.png)</button>
+            </div>
+
+            <div class="qr-output-section">
+                <div id="qrcode"></div>
+                <div id="qrHint" style="font-size: 12px; color: #888; margin-top: 10px;">即時生成預覽</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab 切換邏輯
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if (tabId === 'tab-qrcode') {
+            makeQRCode();
+        }
+    }
+
+    // 進位轉換邏輯
+    const CHARSET_36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const CHARSET_34 = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const KEY_NUMS = new Set([0, 9, 10, 17, 18, 22, 23, 33, 34, 35, 36, 37, 67, 68, 69, 101, 102, 106, 107]);
+
+    function decToBase36(num) {
+        if (num === 0) return "0";
+        let result = "";
+        let n = num;
+        while (n > 0) {
+            result = CHARSET_36.charAt(n % 36) + result;
+            n = Math.floor(n / 36);
+        }
+        return result;
+    }
+
+    function decToCustomBase34(num) {
+        if (num === 0) return "0";
+        let result = "";
+        let n = num;
+        while (n > 0) {
+            result = CHARSET_34.charAt(n % 34) + result;
+            n = Math.floor(n / 34);
+        }
+        return result;
+    }
+
+    function convertSingle() {
+        const val = parseInt(document.getElementById('singleInput').value, 10);
+        if (isNaN(val) || val < 0) {
+            document.getElementById('hexResult').innerText = '-';
+            document.getElementById('base36Result').innerText = '-';
+            document.getElementById('customResult').innerText = '-';
+            return;
+        }
+        document.getElementById('hexResult').innerText = val.toString(16).toUpperCase();
+        document.getElementById('base36Result').innerText = decToBase36(val);
+        document.getElementById('customResult').innerText = decToCustomBase34(val);
+    }
+
+    function generateTable() {
+        const start = parseInt(document.getElementById('startNum').value, 10) || 0;
+        const end = parseInt(document.getElementById('endNum').value, 10) || 0;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        for (let i = start; i <= end; i++) {
+            const tr = document.createElement('tr');
+            if (KEY_NUMS.has(i)) tr.classList.add('highlight');
+
+            tr.innerHTML = `
+                <td>${i}</td>
+                <td>${i.toString(16).toUpperCase()}</td>
+                <td>${decToBase36(i)}</td>
+                <td>${decToCustomBase34(i)}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function exportCSV() {
+        const start = parseInt(document.getElementById('startNum').value, 10) || 0;
+        const end = parseInt(document.getElementById('endNum').value, 10) || 0;
+        let csvContent = "data:text/csv;charset=utf-8,﻿十進位,十六進位,標準36進制,自訂進位(無I/O)\n";
+
+        for (let i = start; i <= end; i++) {
+            csvContent += `${i},${i.toString(16).toUpperCase()},${decToBase36(i)},${decToCustomBase34(i)}\n`;
+        }
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `進位對照表_${start}_至_${end}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // QR Code 生成邏輯
+    let qrcodeObj = null;
+
+    function makeQRCode() {
+        const text = document.getElementById("qrText").value;
+        const size = parseInt(document.getElementById("qrSize").value, 10);
+        const qrContainer = document.getElementById("qrcode");
+        
+        qrContainer.innerHTML = "";
+
+        if (!text.trim()) return;
+
+        qrcodeObj = new QRCode(qrContainer, {
+            text: text,
+            width: size,
+            height: size,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    function downloadQRCode() {
+        const qrContainer = document.getElementById("qrcode");
+        const img = qrContainer.querySelector("img");
+        const canvas = qrContainer.querySelector("canvas");
+
+        let imageSrc = "";
+        if (img && img.src) {
+            imageSrc = img.src;
+        } else if (canvas) {
+            imageSrc = canvas.toDataURL("image/png");
+        }
+
+        if (!imageSrc) {
+            alert("請先輸入內容產生 QR Code！");
+            return;
+        }
+
+        const link = document.createElement("a");
+        link.href = imageSrc;
+        link.download = "QRCode.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 初始化
+    convertSingle();
+    generateTable();
+</script>
+
+</body>
+</html>

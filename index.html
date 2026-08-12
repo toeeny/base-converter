@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>進位對照表工具 (十進位 / 十六進位 / 自訂進位)</title>
+    <title>進位對照表工具 (十進位 / 十六進位 / 標準36進制 / 自訂進位)</title>
     <style>
         :root {
             --primary-color: #1F4E78;
@@ -24,7 +24,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
             background: var(--card-bg);
             padding: 30px;
@@ -48,6 +48,7 @@
             padding: 10px 15px;
             border-left: 4px solid var(--primary-color);
             border-radius: 4px;
+            line-height: 1.6;
         }
 
         .controls {
@@ -163,7 +164,8 @@
 <div class="container">
     <h1>進位對照表線上轉換工具</h1>
     <div class="subtitle">
-        註：自訂進位字元庫為 <span class="charset-display">0123456789ABCDEFGHJKLMNPQRSTUVWXYZ</span>（共 34 字元，已剔除 <span style="color:red; font-weight:bold;">I</span> 與 <span style="color:red; font-weight:bold;">O</span>，採用 34 進制，保證序號 100% 唯一不重碼）。
+        • <strong>標準 36 進制字元庫：</strong> <span class="charset-display">0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</span>（共 36 字元，包含 I 與 O）。<br>
+        • <strong>自訂進位字元庫：</strong> <span class="charset-display">0123456789ABCDEFGHJKLMNPQRSTUVWXYZ</span>（共 34 字元，已剔除 <span style="color:red; font-weight:bold;">I</span> 與 <span style="color:red; font-weight:bold;">O</span>，採用 34 進制不重碼）。
     </div>
 
     <!-- 即時單數查詢區 -->
@@ -173,6 +175,7 @@
             <input type="number" id="singleInput" value="106" min="0" oninput="convertSingle()">
         </div>
         <div>十六進位: <span id="hexResult" class="result-badge">6A</span></div>
+        <div>標準 36 進制: <span id="base36Result" class="result-badge">2Y</span></div>
         <div>自訂進位 (無 I,O): <span id="customResult" class="result-badge">34</span></div>
     </div>
 
@@ -196,7 +199,8 @@
             <thead>
                 <tr>
                     <th>十進位 (Decimal)</th>
-                    <th>十六進位 (Hexadecimal)</th>
+                    <th>十六進位 (Hex)</th>
+                    <th>標準 36 進制 (含 I,O)</th>
                     <th>自訂進位 (無 I,O 不重碼)</th>
                 </tr>
             </thead>
@@ -207,16 +211,31 @@
 </div>
 
 <script>
-    const CHARSET = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 34 characters
+    const CHARSET_36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // 36 characters
+    const CHARSET_34 = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 34 characters (no I, O)
     const KEY_NUMS = new Set([0, 9, 10, 17, 18, 22, 23, 33, 34, 35, 36, 37, 67, 68, 69, 101, 102, 106, 107]);
 
+    // 標準 36 進制轉換函數
+    function decToBase36(num) {
+        if (num === 0) return "0";
+        let result = "";
+        let n = num;
+        while (n > 0) {
+            let remainder = n % 36;
+            result = CHARSET_36.charAt(remainder) + result;
+            n = Math.floor(n / 36);
+        }
+        return result;
+    }
+
+    // 自訂進位轉換函數 (34進制)
     function decToCustomBase34(num) {
         if (num === 0) return "0";
         let result = "";
         let n = num;
         while (n > 0) {
             let remainder = n % 34;
-            result = CHARSET.charAt(remainder) + result;
+            result = CHARSET_34.charAt(remainder) + result;
             n = Math.floor(n / 34);
         }
         return result;
@@ -226,10 +245,12 @@
         const val = parseInt(document.getElementById('singleInput').value, 10);
         if (isNaN(val) || val < 0) {
             document.getElementById('hexResult').innerText = '-';
+            document.getElementById('base36Result').innerText = '-';
             document.getElementById('customResult').innerText = '-';
             return;
         }
         document.getElementById('hexResult').innerText = val.toString(16).toUpperCase();
+        document.getElementById('base36Result').innerText = decToBase36(val);
         document.getElementById('customResult').innerText = decToCustomBase34(val);
     }
 
@@ -246,11 +267,13 @@
             }
 
             const hexVal = i.toString(16).toUpperCase();
+            const b36Val = decToBase36(i);
             const customVal = decToCustomBase34(i);
 
             tr.innerHTML = `
                 <td>${i}</td>
                 <td>${hexVal}</td>
+                <td>${b36Val}</td>
                 <td>${customVal}</td>
             `;
             tbody.appendChild(tr);
@@ -260,12 +283,13 @@
     function exportCSV() {
         const start = parseInt(document.getElementById('startNum').value, 10) || 0;
         const end = parseInt(document.getElementById('endNum').value, 10) || 0;
-        let csvContent = "data:text/csv;charset=utf-8,﻿十進位,十六進位,自訂進位(無I/O)\n";
+        let csvContent = "data:text/csv;charset=utf-8,﻿十進位,十六進位,標準36進制,自訂進位(無I/O)\n";
 
         for (let i = start; i <= end; i++) {
             const hexVal = i.toString(16).toUpperCase();
+            const b36Val = decToBase36(i);
             const customVal = decToCustomBase34(i);
-            csvContent += `${i},${hexVal},${customVal}\n`;
+            csvContent += `${i},${hexVal},${b36Val},${customVal}\n`;
         }
 
         const encodedUri = encodeURI(csvContent);

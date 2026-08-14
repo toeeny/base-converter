@@ -14,7 +14,6 @@
             --card-bg: #FFFFFF;
             --border-color: #D9D9D9;
             --text-color: #333333;
-            --highlight-bg: #FFF2CC;
             --warning-color: #D9534F;
             --success-color: #2E7D32;
         }
@@ -209,7 +208,6 @@
         }
 
         tr:nth-child(even) { background-color: #F8FAFC; }
-        tr.highlight { background-color: var(--highlight-bg); font-weight: bold; }
 
         .charset-display {
             font-family: monospace;
@@ -503,7 +501,6 @@
     // 進位定義
     const CHARSET_36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const CHARSET_34 = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-    const KEY_NUMS = new Set([0, 9, 10, 17, 18, 22, 23, 33, 34, 35, 36, 37, 67, 68, 69, 101, 102, 106, 107]);
 
     // 數字轉字串演算法
     function decToBase36(num) {
@@ -592,7 +589,7 @@
         document.getElementById('inputBase34').value = '';
     }
 
-    // 對照表產生與搜尋
+    // 對照表產生與搜尋 (已移除非必要的黃底標示邏輯)
     function generateTable() {
         const start = parseInt(document.getElementById('startNum').value, 10) || 0;
         const end = parseInt(document.getElementById('endNum').value, 10) || 0;
@@ -605,7 +602,6 @@
 
         for (let i = start; i <= end; i++) {
             const tr = document.createElement('tr');
-            if (KEY_NUMS.has(i)) tr.classList.add('highlight');
             tr.innerHTML = `
                 <td>${i}</td>
                 <td>${i.toString(16).toUpperCase()}</td>
@@ -696,20 +692,20 @@
     function analyzeString() {
         const str = document.getElementById("analyzeText").value;
         
-        // 1. 總字元數（含空白、換行與特殊字元，完整長度）
+        // 1. 總字元數（含空白、換行與特殊字元）
         const totalLen = str.length;
         
-        // 2. 不含空白與換行的字數
+        // 2. 純字數 (不含空白與換行)
         const noSpaceLen = str.replace(/\s/g, '').length;
         
-        // 3. 空白字元數（空格、Tab、全形空格）
+        // 3. 空白字元數
         const spaceMatches = str.match(/[ \t\u3000]/g);
         const spacesCount = spaceMatches ? spaceMatches.length : 0;
         
         // 4. 總行數
         const linesCount = str === "" ? 0 : str.split('\n').length;
 
-        // 即時更新到介面
+        // 即時更新介面
         document.getElementById("statTotalLen").innerText = totalLen.toLocaleString();
         document.getElementById("statNoSpaceLen").innerText = noSpaceLen.toLocaleString();
         document.getElementById("statSpaces").innerText = spacesCount.toLocaleString();

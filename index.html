@@ -15,6 +15,7 @@
             --border-color: #D9D9D9;
             --text-color: #333333;
             --highlight-bg: #FFF2CC;
+            --warning-color: #d9534f;
         }
 
         body {
@@ -40,18 +41,20 @@
             border-bottom: 2px solid var(--border-color);
             margin-bottom: 25px;
             gap: 5px;
+            overflow-x: auto;
         }
 
         .tab-btn {
             background: none;
             border: none;
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 12px 20px;
+            font-size: 15px;
             font-weight: bold;
             color: #666;
             cursor: pointer;
             border-bottom: 3px solid transparent;
             transition: all 0.2s;
+            white-space: nowrap;
         }
 
         .tab-btn:hover {
@@ -110,7 +113,7 @@
             font-size: 14px;
         }
 
-        input[type="number"], input[type="text"], textarea {
+        input[type="number"], input[type="text"], textarea, select {
             padding: 8px 12px;
             border: 1px solid var(--border-color);
             border-radius: 5px;
@@ -134,6 +137,13 @@
 
         button:hover {
             background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
         }
 
         .converter-box {
@@ -239,6 +249,29 @@
             resize: vertical;
             box-sizing: border-box;
         }
+
+        /* 新增：文字長度資訊統計列 */
+        .text-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #555;
+            margin-top: 6px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 4px;
+        }
+
+        .text-stats .warning {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -246,8 +279,9 @@
 <div class="container">
     <!-- 分頁導覽按鈕 -->
     <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('tab-converter')">進位對照表工具</button>
-        <button class="tab-btn" onclick="switchTab('tab-qrcode')">二維碼 (QR Code) 生成器</button>
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-converter')">進位對照表工具</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-qrcode')">二維碼 (QR Code) 生成器</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-reverse')">進位反向解碼器</button>
     </div>
 
     <!-- 分頁 1：進位對照表 -->
@@ -300,20 +334,29 @@
     <div id="tab-qrcode" class="tab-content">
         <h1>二維碼 (QR Code) 生成器</h1>
         <div class="subtitle">
-            輸入任意文字、網址、料號或進位編碼，即可即時產生 QR Code 圖片，並支援一鍵下載。
+            輸入任意文字、網址、料號或進位編碼，即可即時產生 QR Code 圖片，並支援長度統計與下載。
         </div>
 
         <div class="qr-wrapper">
             <div class="qr-input-section">
                 <div style="margin-bottom: 15px;">
-                    <label for="qrText" style="display:block; margin-bottom: 8px;">輸入文字 / 網址 / 編碼：</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label for="qrText">輸入文字 / 網址 / 編碼：</label>
+                        <button class="btn-secondary" style="padding: 3px 8px; font-size: 12px;" onclick="clearQrText()">清空內容</button>
+                    </div>
                     <textarea id="qrText" placeholder="請在此輸入要轉換為 QR Code 的內容..." oninput="makeQRCode()">https://github.com</textarea>
+                    
+                    <!-- 新增：字元統計與長度提示列 -->
+                    <div class="text-stats">
+                        <span>長度：<strong id="charCount">0</strong> 字元 | <strong id="byteCount">0</strong> Bytes (UTF-8)</span>
+                        <span id="lenWarning"></span>
+                    </div>
                 </div>
 
                 <div class="controls" style="margin-bottom: 15px;">
                     <div class="control-group">
                         <label for="qrSize">圖片尺寸:</label>
-                        <select id="qrSize" onchange="makeQRCode()" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color);">
+                        <select id="qrSize" onchange="makeQRCode()">
                             <option value="150">小 (150x150)</option>
                             <option value="200" selected>中 (200x200)</option>
                             <option value="300">大 (300x300)</option>
@@ -321,7 +364,10 @@
                     </div>
                 </div>
 
-                <button onclick="downloadQRCode()" style="background-color: #2E7D32; width: 100%;">下載 QR Code 圖片 (.png)</button>
+                <div class="btn-group">
+                    <button onclick="downloadQRCode()" style="background-color: #2E7D32; flex: 1;">下載圖片 (.png)</button>
+                    <button onclick="copyQRCodeImage()" class="btn-secondary" style="flex: 1;">複製 QR Code 圖片</button>
+                </div>
             </div>
 
             <div class="qr-output-section">
@@ -330,11 +376,32 @@
             </div>
         </div>
     </div>
+
+    <!-- 分頁 3（新優化）：進位反向解碼器 -->
+    <div id="tab-reverse" class="tab-content">
+        <h1>進位反向解碼器</h1>
+        <div class="subtitle">
+            將十六進位、36 進制或自訂 34 進制字串，**反向還原**為十進位數值。
+        </div>
+
+        <div class="converter-box" style="flex-direction: column; align-items: flex-start;">
+            <div class="control-group" style="width: 100%;">
+                <label for="reverseInput" style="width: 140px;">輸入進位字串:</label>
+                <input type="text" id="reverseInput" value="34" style="flex: 1; text-transform: uppercase;" oninput="decodeCustomBase()">
+            </div>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+                <div>十六進位還原: <span id="revHexResult" class="result-badge">-</span></div>
+                <div>標準 36 進制還原: <span id="revBase36Result" class="result-badge">-</span></div>
+                <div>自訂 34 進制還原: <span id="revCustomResult" class="result-badge">-</span></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Tab 切換邏輯
-    function switchTab(tabId) {
+    // Tab 切換邏輯 (優化傳參方式)
+    function switchTab(event, tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
@@ -373,6 +440,21 @@
         return result;
     }
 
+    // 反向轉換邏輯 (Base -> Decimal)
+    function baseToDec(str, charset) {
+        let cleanStr = str.trim().toUpperCase();
+        if (!cleanStr) return null;
+        let base = charset.length;
+        let dec = 0;
+        for (let i = 0; i < cleanStr.length; i++) {
+            let char = cleanStr[i];
+            let index = charset.indexOf(char);
+            if (index === -1) return null; // 包含無效字元
+            dec = dec * base + index;
+        }
+        return dec;
+    }
+
     function convertSingle() {
         const val = parseInt(document.getElementById('singleInput').value, 10);
         if (isNaN(val) || val < 0) {
@@ -384,6 +466,22 @@
         document.getElementById('hexResult').innerText = val.toString(16).toUpperCase();
         document.getElementById('base36Result').innerText = decToBase36(val);
         document.getElementById('customResult').innerText = decToCustomBase34(val);
+    }
+
+    function decodeCustomBase() {
+        const input = document.getElementById('reverseInput').value;
+        
+        // 十六進位
+        const hexDec = parseInt(input, 16);
+        document.getElementById('revHexResult').innerText = isNaN(hexDec) ? '無效字元' : hexDec;
+
+        // Base36
+        const b36Dec = baseToDec(input, CHARSET_36);
+        document.getElementById('revBase36Result').innerText = (b36Dec === null) ? '無效字元' : b36Dec;
+
+        // Base34 (無 I, O)
+        const b34Dec = baseToDec(input, CHARSET_34);
+        document.getElementById('revCustomResult').innerText = (b34Dec === null) ? '無效字元' : b34Dec;
     }
 
     function generateTable() {
@@ -406,25 +504,32 @@
         }
     }
 
+    // 使用 Blob 匯出 CSV，防止 URL 過長
     function exportCSV() {
         const start = parseInt(document.getElementById('startNum').value, 10) || 0;
         const end = parseInt(document.getElementById('endNum').value, 10) || 0;
-        let csvContent = "data:text/csv;charset=utf-8,﻿十進位,十六進位,標準36進制,自訂進位(無I/O)\n";
+        let csvContent = "\uFEFF十進位,十六進位,標準36進制,自訂進位(無I/O)\n";
 
         for (let i = start; i <= end; i++) {
             csvContent += `${i},${i.toString(16).toUpperCase()},${decToBase36(i)},${decToCustomBase34(i)}\n`;
         }
 
-        const encodedUri = encodeURI(csvContent);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
         link.setAttribute("download", `進位對照表_${start}_至_${end}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
-    // QR Code 生成邏輯
+    // 計算 UTF-8 位元組數
+    function getUtf8Bytes(str) {
+        return new TextEncoder().encode(str).length;
+    }
+
+    // QR Code 生成與長度計算邏輯
     let qrcodeObj = null;
 
     function makeQRCode() {
@@ -432,6 +537,23 @@
         const size = parseInt(document.getElementById("qrSize").value, 10);
         const qrContainer = document.getElementById("qrcode");
         
+        // 計算字元與 Byte 數
+        const charLength = text.length;
+        const byteLength = getUtf8Bytes(text);
+
+        document.getElementById("charCount").innerText = charLength;
+        document.getElementById("byteCount").innerText = byteLength;
+
+        // 長度警示 (CorrectLevel.H 容錯率下，建議 Byte 數不宜超過 ~1200)
+        const warningEl = document.getElementById("lenWarning");
+        if (byteLength > 1200) {
+            warningEl.innerHTML = `<span class="warning">⚠️ 容量過大，可能無法掃描</span>`;
+        } else if (byteLength > 800) {
+            warningEl.innerHTML = `<span style="color:#e67e22;">⚠️ 密度較高</span>`;
+        } else {
+            warningEl.innerHTML = "";
+        }
+
         qrContainer.innerHTML = "";
 
         if (!text.trim()) return;
@@ -444,6 +566,11 @@
             colorLight: "#ffffff",
             correctLevel: QRCode.CorrectLevel.H
         });
+    }
+
+    function clearQrText() {
+        document.getElementById("qrText").value = "";
+        makeQRCode();
     }
 
     function downloadQRCode() {
@@ -471,9 +598,30 @@
         document.body.removeChild(link);
     }
 
+    // 複製 QR Code 圖片至剪貼簿
+    async function copyQRCodeImage() {
+        const qrContainer = document.getElementById("qrcode");
+        const canvas = qrContainer.querySelector("canvas");
+        if (!canvas) {
+            alert("請先輸入內容產生 QR Code！");
+            return;
+        }
+
+        try {
+            canvas.toBlob(async (blob) => {
+                const item = new ClipboardItem({ "image/png": blob });
+                await navigator.clipboard.write([item]);
+                alert("已成功複製 QR Code 圖片至剪貼簿！");
+            });
+        } catch (err) {
+            alert("複製失敗，您的瀏覽器可能不支援此功能。");
+        }
+    }
+
     // 初始化
     convertSingle();
     generateTable();
+    decodeCustomBase();
 </script>
 
 </body>

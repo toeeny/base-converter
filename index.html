@@ -341,26 +341,26 @@
         <div class="subtitle">
             • <strong>雙向即時反查：</strong> 任意輸入下方 4 種進位中的其中一種，其他 3 種將自動反查算出。<br>
             • <strong>字元庫定義：</strong><br>
-            &nbsp;&nbsp;- <strong>標準 36 進制：</strong> <span class="charset-display">0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</span><br>
-            &nbsp;&nbsp;- <strong>自訂 34 進制：</strong> <span class="charset-display">0123456789ABCDEFGHJKLMNPQRSTUVWXYZ</span>（無 <span style="color:red; font-weight:bold;">I</span> 與 <span style="color:red; font-weight:bold;">O</span>）
+            &nbsp;&nbsp;- <strong>36進位(Base36)：</strong> <span class="charset-display">0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</span><br>
+            &nbsp;&nbsp;- <strong>34進位( 無I/O)：</strong> <span class="charset-display">0123456789ABCDEFGHJKLMNPQRSTUVWXYZ</span>（已排除 <span style="color:red; font-weight:bold;">I</span> 與 <span style="color:red; font-weight:bold;">O</span>）
         </div>
 
         <!-- 雙向即時反查區塊 -->
         <div class="converter-grid">
             <div class="converter-field">
-                <label for="inputDec">十進位 (Decimal):</label>
+                <label for="inputDec">10進位(DEC):</label>
                 <input type="text" id="inputDec" placeholder="例如: 106" oninput="convertFrom('dec')">
             </div>
             <div class="converter-field">
-                <label for="inputHex">十六進位 (Hex):</label>
+                <label for="inputHex">16進位(HEX):</label>
                 <input type="text" id="inputHex" placeholder="例如: 6A" oninput="convertFrom('hex')">
             </div>
             <div class="converter-field">
-                <label for="inputBase36">標準 36 進制 (含 I,O):</label>
+                <label for="inputBase36">36進位(Base36):</label>
                 <input type="text" id="inputBase36" placeholder="例如: 2Y" oninput="convertFrom('base36')">
             </div>
             <div class="converter-field">
-                <label for="inputBase34">自訂 34 進制 (無 I,O):</label>
+                <label for="inputBase34">34進位( 無I/O):</label>
                 <input type="text" id="inputBase34" placeholder="例如: 34" oninput="convertFrom('base34')">
             </div>
         </div>
@@ -385,10 +385,10 @@
             <table>
                 <thead>
                     <tr>
-                        <th>十進位 (Decimal)</th>
-                        <th>十六進位 (Hex)</th>
-                        <th>標準 36 進制 (含 I,O)</th>
-                        <th>自訂 34 進制 (無 I,O 不重碼)</th>
+                        <th>10進位(DEC)</th>
+                        <th>16進位(HEX)</th>
+                        <th>36進位(Base36)</th>
+                        <th>34進位( 無I/O)</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -453,7 +453,7 @@
             <textarea id="analyzeText" placeholder="請在此貼上 QR Code 解析後的內容..." oninput="analyzeString()"></textarea>
         </div>
 
-        <!-- 統計數據卡片展現區 (依需求設定 3 個統計欄位) -->
+        <!-- 統計數據卡片展現區 -->
         <div class="stats-grid">
             <div class="stat-card highlight-card">
                 <div class="stat-label">1. 總字元數 (含空白,符號等...)</div>
@@ -627,7 +627,7 @@
         const end = parseInt(document.getElementById('endNum').value, 10) || 0;
         if (start > end) { showToast("⚠️ 起始值大於結束值，無法匯出！"); return; }
 
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF十進位,十六進位,標準36進制,自訂進位(無I/O)\n";
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF10進位(DEC),16進位(HEX),36進位(Base36),34進位( 無I/O)\n";
         for (let i = start; i <= end; i++) {
             csvContent += `${i},${i.toString(16).toUpperCase()},${decToBase36(i)},${decToBase34(i)}\n`;
         }
@@ -696,7 +696,7 @@
         // 1. 總字元數 (含空白,符號等... 但排除 \r, \n 換行符號)
         const noBreakLen = str.replace(/[\r\n]/g, '').length;
         
-        // 2. 總字元數 (含跳行 - 即完整 raw string length)
+        // 2. 總字元數 (含跳行)
         const withBreakLen = str.length;
         
         // 3. 總行數

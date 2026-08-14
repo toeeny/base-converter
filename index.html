@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多功能線上工具 (雙向進位反查 & QR Code 分析與生成)</title>
+    <!-- 防快取設定 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- 引入 QRCode.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -261,7 +265,7 @@
         /* 統計卡片樣式 */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
             margin-top: 20px;
         }
@@ -293,6 +297,7 @@
         .stat-label {
             font-size: 13px;
             color: #666;
+            font-weight: bold;
         }
 
         /* Toast 提示 */
@@ -434,7 +439,7 @@
     <div id="tab-analyzer" class="tab-content">
         <h1>QR Code 字串內容解析器</h1>
         <div class="subtitle">
-            貼上從二維碼 (QR Code) 掃描出來的內容或任意字串，系統將精確解析包含<strong>空白、換行與特殊字元</strong>在內的總字元數量。
+            貼上從二維碼 (QR Code) 掃描出來的內容或任意字串，系統將精確統計包含文字、數字、符號 (如 -, _) 與跳行在內的數量。
         </div>
 
         <div>
@@ -448,22 +453,18 @@
             <textarea id="analyzeText" placeholder="請在此貼上 QR Code 解析後的內容..." oninput="analyzeString()"></textarea>
         </div>
 
-        <!-- 統計數據卡片展現區 -->
+        <!-- 統計數據卡片展現區 (依需求設定 3 個統計欄位) -->
         <div class="stats-grid">
             <div class="stat-card highlight-card">
-                <div class="stat-label">總字元數 (含空白/換行)</div>
-                <div class="stat-value" id="statTotalLen">0</div>
+                <div class="stat-label">1. 總字元數 (含空白,符號等...)</div>
+                <div class="stat-value" id="statNoBreakLen">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">純字數 (不含空白與換行)</div>
-                <div class="stat-value" id="statNoSpaceLen">0</div>
+                <div class="stat-label">2. 總字元數 (含跳行)</div>
+                <div class="stat-value" id="statWithBreakLen">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">空白字元數 (空格/Tab)</div>
-                <div class="stat-value" id="statSpaces">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">總行數 (Lines)</div>
+                <div class="stat-label">3. 總行數 (Lines)</div>
                 <div class="stat-value" id="statLines">0</div>
             </div>
         </div>
@@ -589,7 +590,7 @@
         document.getElementById('inputBase34').value = '';
     }
 
-    // 對照表產生與搜尋 (已移除非必要的黃底標示邏輯)
+    // 對照表產生與搜尋
     function generateTable() {
         const start = parseInt(document.getElementById('startNum').value, 10) || 0;
         const end = parseInt(document.getElementById('endNum').value, 10) || 0;
@@ -688,27 +689,22 @@
         showToast("✅ 已下載 QR Code！");
     }
 
-    // 分頁 3：字串解析邏輯 (精確計算包含空白在內的字元數)
+    // 分頁 3：字串解析邏輯
     function analyzeString() {
         const str = document.getElementById("analyzeText").value;
         
-        // 1. 總字元數（含空白、換行與特殊字元）
-        const totalLen = str.length;
+        // 1. 總字元數 (含空白,符號等... 但排除 \r, \n 換行符號)
+        const noBreakLen = str.replace(/[\r\n]/g, '').length;
         
-        // 2. 純字數 (不含空白與換行)
-        const noSpaceLen = str.replace(/\s/g, '').length;
+        // 2. 總字元數 (含跳行 - 即完整 raw string length)
+        const withBreakLen = str.length;
         
-        // 3. 空白字元數
-        const spaceMatches = str.match(/[ \t\u3000]/g);
-        const spacesCount = spaceMatches ? spaceMatches.length : 0;
-        
-        // 4. 總行數
+        // 3. 總行數
         const linesCount = str === "" ? 0 : str.split('\n').length;
 
         // 即時更新介面
-        document.getElementById("statTotalLen").innerText = totalLen.toLocaleString();
-        document.getElementById("statNoSpaceLen").innerText = noSpaceLen.toLocaleString();
-        document.getElementById("statSpaces").innerText = spacesCount.toLocaleString();
+        document.getElementById("statNoBreakLen").innerText = noBreakLen.toLocaleString();
+        document.getElementById("statWithBreakLen").innerText = withBreakLen.toLocaleString();
         document.getElementById("statLines").innerText = linesCount.toLocaleString();
     }
 
